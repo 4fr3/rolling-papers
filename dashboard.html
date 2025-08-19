@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Rolling Papers</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Rolling Papers</h1>
+        <div id="user-info" class="user-info">
+            <!-- Aquí se mostrarán email y username -->
+        </div>
+        <button id="logout-btn" style="margin-top:20px;">Cerrar sesión</button>
+    </div>
+
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Validar sesión
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+
+        // Cargar perfil
+        const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        const userInfoDiv = document.getElementById('user-info');
+        if (profile && !error) {
+            userInfoDiv.innerHTML = `
+                <p><strong>Email:</strong> ${user.email}</p>
+                <p><strong>Nombre de usuario:</strong> ${profile.username}</p>
+            `;
+        } else {
+            userInfoDiv.innerHTML = `<p><strong>Email:</strong> ${user.email}</p>
+                                     <p><strong>Nombre de usuario:</strong> (no definido)</p>`;
+        }
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async function() {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        });
+    });
+    </script>
+</body>
+</html>
