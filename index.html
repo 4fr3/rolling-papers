@@ -96,49 +96,50 @@
             cargarTopEntradas();
         });
 
-        // Cargar entradas recientes
-        async function cargarEntradasRecientes() {
-            const { data, error } = await supabase
-                .from('entries')
-                .select('id, title, content, points, created_at, user_id')
-                .order('created_at', { ascending: false })
-                .range(recentOffset, recentOffset + limit - 1);
+// Cargar entradas recientes
+async function cargarEntradasRecientes() {
+    const { data, error } = await supabase
+        .from('entries')
+        .select('id, title, content, points, created_at, username')
+        .order('created_at', { ascending: false })
+        .range(recentOffset, recentOffset + limit - 1);
 
-            if (error) { console.error(error); return; }
-            renderEntradas(data, 'recent-entries');
-            recentOffset += data.length;
-        }
+    if (error) { console.error(error); return; }
+    renderEntradas(data, 'recent-entries');
+    recentOffset += data.length;
+}
 
-        // Cargar entradas top
-        async function cargarTopEntradas() {
-            const { data, error } = await supabase
-                .from('entries')
-                .select('id, title, content, points, created_at, user_id')
-                .order('points', { ascending: false })
-                .range(topOffset, topOffset + limit - 1);
+// Cargar top entradas
+async function cargarTopEntradas() {
+    const { data, error } = await supabase
+        .from('entries')
+        .select('id, title, content, points, created_at, username')
+        .order('points', { ascending: false })
+        .range(topOffset, topOffset + limit - 1);
 
-            if (error) { console.error(error); return; }
-            renderEntradas(data, 'top-entries');
-            topOffset += data.length;
-        }
+    if (error) { console.error(error); return; }
+    renderEntradas(data, 'top-entries');
+    topOffset += data.length;
+}
 
-        // Renderizar entradas
-        function renderEntradas(entries, containerId) {
-            const lista = document.getElementById(containerId);
-            entries.forEach(entry => {
-                const li = document.createElement('li');
-                li.innerHTML = `
-                    <div class="entry-header">
-                        <span>${entry.user_id}</span>
-                        <span>${new Date(entry.created_at).toLocaleString()}</span>
-                    </div>
-                    <div class="entry-title">${entry.title}</div>
-                    <div class="entry-content">${entry.content}</div>
-                    <div class="entry-points">Puntos: ${entry.points}</div>
-                `;
-                lista.appendChild(li);
-            });
-        }
+// Renderizar entradas
+function renderEntradas(entries, containerId) {
+    const lista = document.getElementById(containerId);
+    entries.forEach(entry => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="entry-header">
+                <span>${entry.username || 'Anónimo'}</span>
+                <span>${new Date(entry.created_at).toLocaleString()}</span>
+            </div>
+            <div class="entry-title">${entry.title}</div>
+            <div class="entry-content">${entry.content}</div>
+            <div class="entry-points">Puntos: ${entry.points}</div>
+        `;
+        lista.appendChild(li);
+    });
+}
+
 
         // Scroll infinito
         window.addEventListener('scroll', () => {
@@ -150,3 +151,4 @@
     </script>
 </body>
 </html>
+
