@@ -5,150 +5,198 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rolling Papers</title>
     <link rel="stylesheet" href="main.css">
+    <style>
+        body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        header { background: #333; color: white; padding: 10px 20px; }
+        .navbar a { color: white; text-decoration: none; margin-right: 15px; }
+        h1, h2 { text-align: center; }
+        form { margin: 20px 0; display:flex; flex-direction: column; }
+        input, textarea, button { margin-bottom: 10px; padding: 8px; font-size: 1em; }
+        button { cursor:pointer; background:#333; color:white; border:none; border-radius:4px; }
+        .entries-list { list-style:none; padding:0; margin:0; }
+        .entries-list li { background:white; margin-bottom:12px; padding:12px; border-radius:6px; opacity:0; transform:translateY(20px); animation: fadeIn 0.5s forwards; }
+        .entry-header { display:flex; justify-content:space-between; font-size:0.85em; color:#555; margin-bottom:6px; }
+        .entry-title { font-weight:bold; margin-bottom:6px; }
+        .entry-content { margin-bottom:6px; }
+        .entry-points { font-weight:bold; }
+        .feedback button { margin-right:5px; }
+        @keyframes fadeIn { to { opacity:1; transform:translateY(0); } }
+        #highlight-entry { background:#fffae6; padding:15px; border-radius:8px; margin-bottom:20px; }
+    </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="#" class="nav-logo">Mi Diario</a>
-            <ul class="nav-links">
-                <li><a href="dashboard.html">Dashboard</a></li>
-                <li><a href="#" class="active">Inicio</a></li>
-                <li><a href="login.html">Ingresar</a></li>
-            </ul>
-        </nav>
-    </header>
+<header>
+    <nav class="navbar">
+        <a href="#" class="nav-logo">Mi Diario</a>
+        <ul class="nav-links">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="#" class="active">Inicio</a></li>
+            <li><a href="login.html">Ingresar</a></li>
+        </ul>
+    </nav>
+</header>
 
-    <div class="container">
-        <h1>Mi Diario</h1>
-        <div class="bienvenida">
-            <p>¡Bienvenido/a a <strong>Mi Diario</strong>! Escribe y comparte tus pensamientos. Cada escrito puede ser valorado y ganar puntos.</p>
-        </div>
+<div class="container">
+    <h1>Mi Diario</h1>
 
-        <!-- Formulario de nueva entrada -->
-        <form id="diary-form" style="display:none;">
-            <input type="text" id="entry-title" placeholder="Título" required style="margin-bottom:8px;">
-            <textarea id="entry-text" placeholder="Escribe tu entrada..." required></textarea>
-            <button type="submit">Guardar entrada</button>
-        </form>
+    <div id="highlight-entry"></div>
 
-        <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
+    <form id="diary-form" style="display:none;">
+        <input type="text" id="entry-title" placeholder="Título" required>
+        <textarea id="entry-text" placeholder="Escribe tu entrada..." required></textarea>
+        <button type="submit">Guardar entrada</button>
+    </form>
 
-        <h2>Entradas recientes</h2>
-        <ul id="recent-entries" class="entries-list"></ul>
+    <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
 
-        <h2>Mejores valoradas</h2>
-        <ul id="top-entries" class="entries-list"></ul>
-    </div>
+    <h2>Entradas recientes</h2>
+    <ul id="recent-entries" class="entries-list"></ul>
 
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <h2>Mejores valoradas</h2>
+    <ul id="top-entries" class="entries-list"></ul>
+</div>
 
-        let currentUser = null;
-        let recentOffset = 0;
-        let topOffset = 0;
-        const limit = 5;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Verificar usuario
-            const { data } = await supabase.auth.getUser();
-            if (!data.user) {
-                window.location.href = 'login.html';
-                return;
-            }
-            currentUser = data.user;
-            document.getElementById('diary-form').style.display = '';
-            document.getElementById('logout-btn').style.display = '';
+let currentUser = null;
+let recentOffset = 0;
+let topOffset = 0;
+const limit = 5;
+let loadingRecent = false;
+let loadingTop = false;
 
-            cargarEntradasRecientes();
-            cargarTopEntradas();
-        });
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) { window.location.href='login.html'; return; }
+    currentUser = data.user;
+    document.getElementById('diary-form').style.display='';
+    document.getElementById('logout-btn').style.display='';
 
-        // Logout
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            window.location.href = 'login.html';
-        });
+    cargarEntradasRecientes();
+    cargarTopEntradas();
+    initRealtime();
+});
 
-        // Guardar entrada
-        document.getElementById('diary-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('entry-title').value.trim();
-            const content = document.getElementById('entry-text').value.trim();
-            if (!title || !content || !currentUser) return;
+// Logout
+document.getElementById('logout-btn').addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.href='login.html';
+});
 
-            await supabase.from('entries').insert([
-                { user_id: currentUser.id, title, content, points: 0 }
-            ]);
+// Guardar entrada
+document.getElementById('diary-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('entry-title').value.trim();
+    const content = document.getElementById('entry-text').value.trim();
+    if (!title || !content || !currentUser) return;
 
-            document.getElementById('entry-title').value = '';
-            document.getElementById('entry-text').value = '';
+    const { data, error } = await supabase.from('entries').insert([{ user_id: currentUser.id, title, content, points:0, created_at: new Date() }]);
+    if(error) { console.error(error); return; }
 
-            // Reset offsets y recargar
-            recentOffset = 0;
-            topOffset = 0;
-            document.getElementById('recent-entries').innerHTML = '';
-            document.getElementById('top-entries').innerHTML = '';
-            cargarEntradasRecientes();
-            cargarTopEntradas();
-        });
+    document.getElementById('entry-title').value='';
+    document.getElementById('entry-text').value='';
+    highlightEntry(data[0]);
 
-// Cargar entradas recientes
+    // Reset offsets y recargar
+    recentOffset = 0; topOffset = 0;
+    document.getElementById('recent-entries').innerHTML='';
+    document.getElementById('top-entries').innerHTML='';
+    cargarEntradasRecientes();
+    cargarTopEntradas();
+});
+
+// Funciones de carga
 async function cargarEntradasRecientes() {
-    const { data, error } = await supabase
-        .from('entries')
-        .select('id, title, content, points, created_at, username')
-        .order('created_at', { ascending: false })
-        .range(recentOffset, recentOffset + limit - 1);
-
-    if (error) { console.error(error); return; }
+    if(loadingRecent) return;
+    loadingRecent = true;
+    const { data, error } = await supabase.from('entries').select('id, title, content, points, created_at').order('created_at', {ascending:false}).range(recentOffset, recentOffset+limit-1);
+    if(error) { console.error(error); loadingRecent=false; return; }
     renderEntradas(data, 'recent-entries');
     recentOffset += data.length;
+    loadingRecent = false;
 }
 
-// Cargar top entradas
 async function cargarTopEntradas() {
-    const { data, error } = await supabase
-        .from('entries')
-        .select('id, title, content, points, created_at, username')
-        .order('points', { ascending: false })
-        .range(topOffset, topOffset + limit - 1);
-
-    if (error) { console.error(error); return; }
+    if(loadingTop) return;
+    loadingTop = true;
+    const { data, error } = await supabase.from('entries').select('id, title, content, points, created_at').order('points', {ascending:false}).range(topOffset, topOffset+limit-1);
+    if(error) { console.error(error); loadingTop=false; return; }
     renderEntradas(data, 'top-entries');
     topOffset += data.length;
+    loadingTop = false;
 }
 
-// Renderizar entradas
-function renderEntradas(entries, containerId) {
+// Render
+function renderEntradas(entries, containerId){
     const lista = document.getElementById(containerId);
-    entries.forEach(entry => {
+    entries.forEach(entry=>{
         const li = document.createElement('li');
-        li.innerHTML = `
+        li.dataset.id = entry.id;
+        li.innerHTML=`
             <div class="entry-header">
-                <span>${entry.username || 'Anónimo'}</span>
+                <span>Usuario: ${entry.user_id}</span>
                 <span>${new Date(entry.created_at).toLocaleString()}</span>
             </div>
             <div class="entry-title">${entry.title}</div>
             <div class="entry-content">${entry.content}</div>
-            <div class="entry-points">Puntos: ${entry.points}</div>
+            <div class="entry-points">Puntos: ${entry.points} <span class="feedback">
+                <button class="valorar" data-id="${entry.id}" data-valor="1">👍</button>
+                <button class="valorar" data-id="${entry.id}" data-valor="-1">👎</button>
+            </span></div>
         `;
         lista.appendChild(li);
     });
+
+    document.querySelectorAll(`#${containerId} .valorar`).forEach(btn=>{
+        btn.onclick = async function(){
+            const id = this.dataset.id;
+            const valor = parseInt(this.dataset.valor);
+            await valorarEntrada(id, valor);
+        };
+    });
 }
 
+// Valorar entrada
+async function valorarEntrada(id, valor){
+    const { data: entradaArr } = await supabase.from('entries').select('points').eq('id', id).single();
+    let puntos = (entradaArr && typeof entradaArr.points==='number')?entradaArr.points:0;
+    puntos += valor;
+    await supabase.from('entries').update({points}).eq('id', id);
+    const li = document.querySelector(`[data-id="${id}"]`);
+    if(li) li.querySelector('.entry-points').textContent = `Puntos: ${puntos}`;
+}
 
-        // Scroll infinito
-        window.addEventListener('scroll', () => {
-            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
-                cargarEntradasRecientes();
-                cargarTopEntradas();
-            }
-        });
-    </script>
+// Highlight última entrada
+function highlightEntry(entry){
+    const highlight = document.getElementById('highlight-entry');
+    highlight.innerHTML = `
+        <h3>${entry.title}</h3>
+        <p>${entry.content}</p>
+        <small>Usuario: ${entry.user_id} - ${new Date(entry.created_at).toLocaleString()}</small>
+    `;
+}
+
+// Scroll infinito
+window.addEventListener('scroll', ()=>{
+    if((window.innerHeight + window.scrollY) >= document.body.offsetHeight-300){
+        cargarEntradasRecientes();
+        cargarTopEntradas();
+    }
+});
+
+// Realtime
+function initRealtime(){
+    supabase.channel('public:entries')
+    .on('postgres_changes', {event:'INSERT', schema:'public', table:'entries'}, payload=>{
+        renderEntradas([payload.new],'recent-entries');
+    })
+    .subscribe();
+}
+</script>
 </body>
 </html>
-
