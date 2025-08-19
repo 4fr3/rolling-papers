@@ -7,125 +7,112 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Rolling Papers</h1>
-
-        <!-- Bienvenida -->
-        <div class="bienvenida" id="welcome-message" style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%); padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem; text-shadow:0 1px 6px #232946; box-shadow:0 2px 12px #7c3aed33;">
-            Cargando...
-        </div>
-        <button id="logout-btn" style="margin-top:20px; background:linear-gradient(90deg,#f43f5e 0%,#7c3aed 100%); color:#fff; border:none; border-radius:8px; padding:10px 0; font-weight:600; width:100%; max-width:200px;">Cerrar sesión</button>
-
-        <!-- Crear Post -->
-        <section style="margin-top:30px;">
-            <h2 style="color:#7c3aed;">Crear un nuevo post</h2>
-            <form id="post-form">
-                <label for="post-title">Título</label>
-                <input type="text" id="post-title" placeholder="Título del post" required>
-
-                <label for="post-content">Contenido</label>
-                <textarea id="post-content" placeholder="Escribe tu post aquí..." required></textarea>
-
-                <button type="submit" style="background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%); color:#fff; border:none; border-radius:8px; padding:10px 0; font-weight:600; margin-top:8px;">Publicar</button>
-            </form>
-            <div id="post-error" style="color:#f43f5e; margin-top:8px;"></div>
-        </section>
-
-        <!-- Lista de Posts -->
-        <section style="margin-top:30px;">
-            <h2 style="color:#7c3aed;">Tus posts</h2>
-            <div id="posts-list">
-                Cargando posts...
-            </div>
-        </section>
+<div class="container">
+    <h1>Rolling Papers</h1>
+    <div class="bienvenida" id="welcome-message" 
+         style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%);
+         padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem;
+         text-shadow:0 1px 6px #232946; box-shadow:0 2px 12px #7c3aed33;">
+        Cargando...
     </div>
 
-    <!-- Supabase JS CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- Crear post -->
+    <form id="post-form" style="margin-top:20px; background:#232946; padding:16px; border-radius:12px;">
+        <textarea id="post-content" placeholder="Escribe tu post..." rows="3" 
+                  style="width:100%; border-radius:8px; padding:8px;"></textarea>
+        <button type="submit" style="margin-top:10px; padding:10px; border:none; border-radius:8px;
+                                    background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%);
+                                    color:#fff; font-weight:600;">Publicar</button>
+        <div id="post-error" style="color:#f43f5e; margin-top:8px;"></div>
+    </form>
 
-    document.addEventListener('DOMContentLoaded', async () => {
-        // Obtener usuario
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) {
-            window.location.href = 'login.html';
+    <!-- Lista de posts -->
+    <h2 style="margin-top:24px; color:#7c3aed;">Tus posts</h2>
+    <ul id="posts-list" style="list-style:none; padding:0;"></ul>
+
+    <button id="logout-btn" style="margin-top:20px; background:linear-gradient(90deg,#f43f5e 0%,#7c3aed 100%);
+                                   color:#fff; border:none; border-radius:8px; padding:10px 0; font-weight:600; width:100%; max-width:200px;">
+        Cerrar sesión
+    </button>
+</div>
+
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Obtener usuario
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    // Mostrar username
+    const { data: profileData } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+    document.getElementById('welcome-message').textContent = profileData
+        ? `¡Bienvenido/a, ${profileData.username}!`
+        : 'Bienvenido/a!';
+
+    // Cargar posts del usuario
+    async function loadPosts() {
+        const { data: posts, error: postsError } = await supabase
+            .from('posts')
+            .select('id, content, created_at')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        const list = document.getElementById('posts-list');
+        list.innerHTML = '';
+        if (postsError) {
+            list.innerHTML = '<li>Error cargando posts</li>';
             return;
         }
-
-        // Mostrar username
-        const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', user.id)
-            .single();
-
-        const username = profileData?.username || 'Usuario';
-        document.getElementById('welcome-message').textContent = `¡Bienvenido/a, ${username}!`;
-
-        // Logout
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            await supabase.auth.signOut();
-            window.location.href = 'login.html';
+        posts.forEach(post => {
+            const li = document.createElement('li');
+            li.textContent = `${post.content} (${new Date(post.created_at).toLocaleString()})`;
+            li.style.marginBottom = '10px';
+            li.style.background = '#f4f4f4';
+            li.style.padding = '8px';
+            li.style.borderRadius = '8px';
+            list.appendChild(li);
         });
+    }
 
-        // Función para mostrar posts
-        async function loadPosts() {
-            const { data, error } = await supabase
-                .from('posts')
-                .select('*')
-                .eq('user_id', user.id)
-                .order('created_at', { ascending: false });
+    await loadPosts();
 
-            const postsList = document.getElementById('posts-list');
-            if (error) {
-                postsList.textContent = 'Error cargando posts.';
-                return;
-            }
+    // Crear nuevo post
+    document.getElementById('post-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const content = document.getElementById('post-content').value.trim();
+        if (!content) return;
 
-            if (data.length === 0) {
-                postsList.textContent = 'No tienes posts aún.';
-                return;
-            }
+        const { data, error: insertError } = await supabase
+            .from('posts')
+            .insert([{ user_id: user.id, content }]);
 
-            postsList.innerHTML = '';
-            data.forEach(post => {
-                const postDiv = document.createElement('div');
-                postDiv.style.background = '#232946';
-                postDiv.style.color = '#f4f4f4';
-                postDiv.style.padding = '12px';
-                postDiv.style.marginBottom = '12px';
-                postDiv.style.borderRadius = '8px';
-                postDiv.innerHTML = `<h3>${post.title}</h3><p>${post.content}</p><small>${new Date(post.created_at).toLocaleString()}</small>`;
-                postsList.appendChild(postDiv);
-            });
+        if (insertError) {
+            document.getElementById('post-error').textContent = insertError.message;
+        } else {
+            document.getElementById('post-error').textContent = '';
+            document.getElementById('post-content').value = '';
+            await loadPosts();
         }
-
-        await loadPosts();
-
-        // Crear nuevo post
-        document.getElementById('post-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const title = document.getElementById('post-title').value.trim();
-            const content = document.getElementById('post-content').value.trim();
-
-            if (!title || !content) return;
-
-            const { data, error } = await supabase
-                .from('posts')
-                .insert([{ title, content, user_id: user.id }]);
-
-            if (error) {
-                document.getElementById('post-error').textContent = error.message;
-            } else {
-                document.getElementById('post-error').textContent = '';
-                document.getElementById('post-form').reset();
-                await loadPosts();
-            }
-        });
     });
-    </script>
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        window.location.href = 'login.html';
+    });
+});
+</script>
 </body>
 </html>
