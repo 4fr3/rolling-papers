@@ -7,148 +7,161 @@
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
-    <header>
-        <nav class="navbar">
-            <a href="#" class="nav-logo">Mi Diario</a>
-            <ul class="nav-links">
-                <li><a href="dashboard.html">Dashboard</a></li>
-                <li><a href="#" class="active">Inicio</a></li>
-                <li><a href="login.html">Ingresar</a></li>
-            </ul>
-        </nav>
-    </header>
+<header>
+    <nav class="navbar">
+        <a href="#" class="nav-logo">Mi Diario</a>
+        <ul class="nav-links">
+            <li><a href="dashboard.html">Dashboard</a></li>
+            <li><a href="#" class="active">Inicio</a></li>
+            <li><a href="login.html">Ingresar</a></li>
+        </ul>
+    </nav>
+</header>
 
-    <div class="container">
-        <h1>Mi Diario</h1>
-        <div class="bienvenida">
-            <p>¡Bienvenido/a a <strong>Mi Diario</strong>! Este es un espacio abierto para que cualquier persona pueda escribir y compartir sus pensamientos, reflexiones, historias o lo que desee. Aquí, cada escrito puede ser valorado por otros usuarios y ganar puntos por tu participación.</p>
-        </div>
-
-        <section class="invitacion">
-            <h2>¿Te animas a escribir?</h2>
-            <p>Comparte lo que quieras, valora los escritos de otros y suma puntos por tu actividad. ¡La comunidad te lee!</p>
-        </section>
-
-        <!-- Formulario para nuevas entradas -->
-        <form id="diary-form" style="display:none;">
-            <input type="text" id="entry-title" placeholder="Título de la entrada" required style="margin-bottom:8px;">
-            <textarea id="entry-text" placeholder="Escribe tu entrada aquí..." required></textarea>
-            <button type="submit">Guardar entrada</button>
-        </form>
-
-        <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
-
-        <h2>Entradas recientes</h2>
-        <ul id="recent-entries" class="entries-list"></ul>
-
-        <h2>Mejores valoradas</h2>
-        <ul id="top-entries" class="entries-list"></ul>
+<div class="container">
+    <h1>Mi Diario</h1>
+    <div class="bienvenida">
+        <p>¡Bienvenido/a a <strong>Mi Diario</strong>! Este es un espacio abierto para que cualquier persona pueda escribir y compartir sus pensamientos, reflexiones, historias o lo que desee. Aquí, cada escrito puede ser valorado por otros usuarios y ganar puntos por tu participación.</p>
     </div>
 
-    <!-- Supabase JS CDN clásico -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <section class="invitacion">
+        <h2>¿Te animas a escribir?</h2>
+        <p>Comparte lo que quieras, valora los escritos de otros y suma puntos por tu actividad. ¡La comunidad te lee!</p>
+    </section>
 
-    let currentUser = null;
-    let recentOffset = 0;
-    let topOffset = 0;
-    const limit = 5;
+    <!-- Formulario para nuevas entradas -->
+    <form id="diary-form" style="display:none;">
+        <input type="text" id="entry-title" placeholder="Título de la entrada" required style="margin-bottom:8px;">
+        <textarea id="entry-text" placeholder="Escribe tu entrada aquí..." required></textarea>
+        <button type="submit">Guardar entrada</button>
+    </form>
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        const { data } = await supabase.auth.getUser();
-        if (!data.user) {
-            window.location.href = 'login.html';
-            return;
-        }
-        currentUser = data.user;
-        document.getElementById('diary-form').style.display = '';
-        document.getElementById('logout-btn').style.display = '';
+    <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
 
-        cargarEntradasRecientes();
-        cargarTopEntradas();
-    });
+    <h2>Entradas recientes</h2>
+    <ul id="recent-entries" class="entries-list"></ul>
 
-    // Logout
-    document.getElementById('logout-btn').addEventListener('click', async function() {
-        await supabase.auth.signOut();
+    <h2>Mejores valoradas</h2>
+    <ul id="top-entries" class="entries-list"></ul>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+const SUPABASE_KEY = 'TU_SUPABASE_KEY';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let recentOffset = 0;
+let topOffset = 0;
+const limit = 5;
+
+document.addEventListener('DOMContentLoaded', async function() {
+    const { data } = await supabase.auth.getUser();
+    if (!data.user) {
         window.location.href = 'login.html';
-    });
-
-    // Guardar nueva entrada
-    document.getElementById('diary-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const title = document.getElementById('entry-title').value.trim();
-        const texto = document.getElementById('entry-text').value.trim();
-        if (!texto || !title || !currentUser) return;
-
-        await supabase.from('entries').insert([
-            { user_id: currentUser.id, title, content: texto, points: 0 }
-        ]);
-
-        document.getElementById('entry-title').value = '';
-        document.getElementById('entry-text').value = '';
-
-        // Recargar entradas
-        recentOffset = 0;
-        topOffset = 0;
-        document.getElementById('recent-entries').innerHTML = '';
-        document.getElementById('top-entries').innerHTML = '';
-        cargarEntradasRecientes();
-        cargarTopEntradas();
-    });
-
-    // Funciones para cargar entradas
-    async function cargarEntradasRecientes() {
-        const { data, error } = await supabase
-            .from('entries')
-            .select('id, title, content, points, created_at, profiles(username)')
-            .order('created_at', { ascending: false })
-            .range(recentOffset, recentOffset + limit - 1);
-
-        if (error) { console.error(error); return; }
-        renderEntradas(data, 'recent-entries');
-        recentOffset += data.length;
+        return;
     }
+    currentUser = data.user;
+    document.getElementById('diary-form').style.display = '';
+    document.getElementById('logout-btn').style.display = '';
 
-    async function cargarTopEntradas() {
-        const { data, error } = await supabase
-            .from('entries')
-            .select('id, title, content, points, created_at, profiles(username)')
-            .order('points', { ascending: false })
-            .range(topOffset, topOffset + limit - 1);
+    cargarEntradasRecientes();
+    cargarTopEntradas();
+});
 
-        if (error) { console.error(error); return; }
-        renderEntradas(data, 'top-entries');
-        topOffset += data.length;
+// Logout
+document.getElementById('logout-btn').addEventListener('click', async function() {
+    await supabase.auth.signOut();
+    window.location.href = 'login.html';
+});
+
+// Guardar nueva entrada
+document.getElementById('diary-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const title = document.getElementById('entry-title').value.trim();
+    const texto = document.getElementById('entry-text').value.trim();
+    if (!texto || !title || !currentUser) return;
+
+    await supabase.from('entries').insert([
+        { user_id: currentUser.id, title, content: texto, points: 0 }
+    ]);
+
+    document.getElementById('entry-title').value = '';
+    document.getElementById('entry-text').value = '';
+
+    // Reiniciar offsets
+    recentOffset = 0;
+    topOffset = 0;
+    document.getElementById('recent-entries').innerHTML = '';
+    document.getElementById('top-entries').innerHTML = '';
+    cargarEntradasRecientes();
+    cargarTopEntradas();
+});
+
+// Funciones para cargar entradas
+async function cargarEntradasRecientes() {
+    const { data, error } = await supabase
+        .from('entries')
+        .select('id, user_id, title, content, points, created_at')
+        .order('created_at', { ascending: false })
+        .range(recentOffset, recentOffset + limit - 1);
+
+    if (error) { console.error(error); return; }
+    await renderEntradas(data, 'recent-entries');
+    recentOffset += data.length;
+}
+
+async function cargarTopEntradas() {
+    const { data, error } = await supabase
+        .from('entries')
+        .select('id, user_id, title, content, points, created_at')
+        .order('points', { ascending: false })
+        .range(topOffset, topOffset + limit - 1);
+
+    if (error) { console.error(error); return; }
+    await renderEntradas(data, 'top-entries');
+    topOffset += data.length;
+}
+
+// Renderizar entradas con username
+async function renderEntradas(entries, containerId) {
+    const lista = document.getElementById(containerId);
+    for (let entry of entries) {
+        // Obtener username del autor
+        let { data: profileData } = await supabase.from('profiles').select('username').eq('id', entry.user_id).single();
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <div class="entry-header">
+                <span>${profileData?.username || 'Anónimo'}</span>
+                <span>${new Date(entry.created_at).toLocaleString()}</span>
+            </div>
+            <div class="entry-title">${entry.title}</div>
+            <div class="entry-content">${entry.content}</div>
+            <div class="entry-points">Puntos: ${entry.points}</div>
+        `;
+        lista.appendChild(li);
     }
+}
 
-    function renderEntradas(entradas, containerId) {
-        const lista = document.getElementById(containerId);
-        entradas.forEach(entry => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="entry-header">
-                    <span>${entry.profiles?.username || 'Anónimo'}</span>
-                    <span>${new Date(entry.created_at).toLocaleString()}</span>
-                </div>
-                <div class="entry-title">${entry.title}</div>
-                <div class="entry-content">${entry.content}</div>
-                <div class="entry-points">Puntos: ${entry.points}</div>
-            `;
-            lista.appendChild(li);
-        });
-    }
+// Scroll infinito separado para recientes y top
+let scrollingRecent = false;
+let scrollingTop = false;
 
-    // Scroll infinito
-    window.addEventListener('scroll', () => {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
-            cargarEntradasRecientes();
-            cargarTopEntradas();
+window.addEventListener('scroll', async () => {
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+        if (!scrollingRecent) {
+            scrollingRecent = true;
+            await cargarEntradasRecientes();
+            scrollingRecent = false;
         }
-    });
-    </script>
+        if (!scrollingTop) {
+            scrollingTop = true;
+            await cargarTopEntradas();
+            scrollingTop = false;
+        }
+    }
+});
+</script>
 </body>
 </html>
