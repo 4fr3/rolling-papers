@@ -3,92 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar sesión | Rolling Papers</title>
+    <title>Rolling Papers | Login/Registro</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <h1>Rolling Papers</h1>
-        <div class="bienvenida">
-            <p style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%); padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem; text-shadow:0 1px 6px #232946; box-shadow:0 2px 12px #7c3aed33;">
-                ¡Bienvenido/a! Inicia sesión o crea una cuenta para comenzar a escribir y participar en la comunidad.
-            </p>
-        </div>
 
         <!-- Login -->
-        <form id="login-form" style="display:block; margin-bottom:24px; background:#232946; border-radius:14px; box-shadow:0 2px 12px #7c3aed33; padding:18px 16px;">
-            <h3 style="color:#7c3aed; margin-bottom:10px;">Iniciar sesión</h3>
-            <label for="login-email">Correo electrónico</label>
+        <form id="login-form" style="display:block; margin-bottom:24px;">
+            <h3>Iniciar sesión</h3>
+            <label>Email</label>
             <input type="email" id="login-email" placeholder="Email" required>
-            
-            <label for="login-password">Contraseña</label>
+            <label>Contraseña</label>
             <input type="password" id="login-password" placeholder="Contraseña" required>
-            
             <button type="submit">Entrar</button>
             <p>¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a></p>
             <div id="login-error" style="color:#f43f5e;"></div>
         </form>
 
         <!-- Registro -->
-        <form id="register-form" style="display:none; margin-bottom:24px; background:#232946; border-radius:14px; box-shadow:0 2px 12px #7c3aed33; padding:18px 16px;">
-            <h3 style="color:#7c3aed; margin-bottom:10px;">Crear cuenta</h3>
-            <label for="register-email">Correo electrónico</label>
+        <form id="register-form" style="display:none; margin-bottom:24px;">
+            <h3>Crear cuenta</h3>
+            <label>Email</label>
             <input type="email" id="register-email" placeholder="Email" required>
-            
-            <label for="register-password">Contraseña</label>
+            <label>Contraseña</label>
             <input type="password" id="register-password" placeholder="Contraseña" required>
-
-            <label for="register-username">Nombre de usuario</label>
+            <label>Nombre de usuario</label>
             <input type="text" id="register-username" placeholder="Usuario" required>
-            
             <button type="submit">Registrarse</button>
             <p>¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión</a></p>
             <div id="register-error" style="color:#f43f5e;"></div>
         </form>
     </div>
 
-    <!-- Supabase JS CDN -->
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
     const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+    const SUPABASE_KEY = 'TU_SUPABASE_KEY';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        // Redirigir si ya está logueado
-        const { data } = await supabase.auth.getUser();
-        if (data.user) {
-            window.location.href = 'dashboard.html';
-            return;
-        }
-
+    document.addEventListener('DOMContentLoaded', () => {
         // Navegación entre login y registro
-        document.getElementById('show-register').addEventListener('click', function(e) {
+        document.getElementById('show-register').addEventListener('click', e => {
             e.preventDefault();
             document.getElementById('login-form').style.display = 'none';
             document.getElementById('register-form').style.display = 'block';
         });
-        document.getElementById('show-login').addEventListener('click', function(e) {
+        document.getElementById('show-login').addEventListener('click', e => {
             e.preventDefault();
             document.getElementById('login-form').style.display = 'block';
             document.getElementById('register-form').style.display = 'none';
         });
 
-        // Registro con username
-        document.getElementById('register-form').addEventListener('submit', async function(e) {
+        // Registro
+        document.getElementById('register-form').addEventListener('submit', async e => {
             e.preventDefault();
             const email = document.getElementById('register-email').value.trim();
             const password = document.getElementById('register-password').value;
             const username = document.getElementById('register-username').value.trim();
 
-            // Crear cuenta
             const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
             if (signUpError) {
                 document.getElementById('register-error').textContent = signUpError.message;
                 return;
             }
 
-            // Insertar perfil en tabla profiles
+            // Insertar perfil en tabla profiles usando UUID del usuario
             const { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .insert([{ id: signUpData.user.id, username }]);
@@ -101,7 +83,7 @@
         });
 
         // Login
-        document.getElementById('login-form').addEventListener('submit', async function(e) {
+        document.getElementById('login-form').addEventListener('submit', async e => {
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
@@ -111,7 +93,6 @@
                 document.getElementById('login-error').textContent = error.message;
             } else {
                 document.getElementById('login-error').textContent = '';
-                // Redirigir al dashboard
                 window.location.href = 'dashboard.html';
             }
         });
@@ -119,4 +100,3 @@
     </script>
 </body>
 </html>
-
