@@ -1,1 +1,8 @@
 
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: "Inter", Arial, sans-serif;
+  background:#1e1e2f;
+  color:#f4f4f4;
+  line-height:1.6;
+}
