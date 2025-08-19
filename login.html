@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iniciar sesión | Mi Diario</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Mi Diario</h1>
+        <div class="bienvenida">
+            <p style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%); padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem; text-shadow:0 1px 6px #232946; box-shadow:0 2px 12px #7c3aed33;">¡Bienvenido/a! Inicia sesión o crea una cuenta para comenzar a escribir y participar en la comunidad.</p>
+        </div>
+        <form id="login-form" style="display:block; margin-bottom:24px; background:#232946; border-radius:14px; box-shadow:0 2px 12px #7c3aed33; padding:18px 16px;">
+            <h3 style="color:#7c3aed; margin-bottom:10px;">Iniciar sesión</h3>
+            <input type="email" id="login-email" placeholder="Email" required style="margin-bottom:8px; background:#f4f4f4; color:#232946; border:1.5px solid #7c3aed; border-radius:8px; padding:8px; width:100%;">
+            <input type="password" id="login-password" placeholder="Contraseña" required style="margin-bottom:8px; background:#f4f4f4; color:#232946; border:1.5px solid #7c3aed; border-radius:8px; padding:8px; width:100%;">
+            <button type="submit" style="background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%); color:#fff; border:none; border-radius:8px; padding:10px 0; font-weight:600; width:100%; margin-bottom:8px;">Entrar</button>
+            <p style="margin-top:8px; color:#f4f4f4;">¿No tienes cuenta? <a href="#" id="show-register" style="color:#f43f5e; font-weight:600;">Regístrate</a></p>
+            <div id="login-error" style="color:#f43f5e;"></div>
+        </form>
+        <form id="register-form" style="display:none; margin-bottom:24px; background:#232946; border-radius:14px; box-shadow:0 2px 12px #7c3aed33; padding:18px 16px;">
+            <h3 style="color:#7c3aed; margin-bottom:10px;">Crear cuenta</h3>
+            <input type="email" id="register-email" placeholder="Email" required style="margin-bottom:8px; background:#f4f4f4; color:#232946; border:1.5px solid #7c3aed; border-radius:8px; padding:8px; width:100%;">
+            <input type="password" id="register-password" placeholder="Contraseña" required style="margin-bottom:8px; background:#f4f4f4; color:#232946; border:1.5px solid #7c3aed; border-radius:8px; padding:8px; width:100%;">
+            <button type="submit" style="background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%); color:#fff; border:none; border-radius:8px; padding:10px 0; font-weight:600; width:100%; margin-bottom:8px;">Registrarse</button>
+            <p style="margin-top:8px; color:#f4f4f4;">¿Ya tienes cuenta? <a href="#" id="show-login" style="color:#f43f5e; font-weight:600;">Inicia sesión</a></p>
+            <div id="register-error" style="color:#f43f5e;"></div>
+        </form>
+    </div>
+
+    <!-- Supabase JS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+    // Redirigir si ya está logueado y asignar listeners tras cargar el DOM
+    document.addEventListener('DOMContentLoaded', async function() {
+        const { data } = await supabase.auth.getUser();
+        if (data.user) {
+            window.location.href = 'index.html';
+            return;
+        }
+        // Navegación entre login y registro
+        document.getElementById('show-register').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        });
+        document.getElementById('show-login').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        });
+        // Registro
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                document.getElementById('register-error').textContent = error.message;
+            } else {
+                document.getElementById('register-error').textContent = 'Cuenta creada. ¡Registro exitoso! Revisa tu email para confirmar.';
+            }
+        });
+        // Login
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                document.getElementById('login-error').textContent = error.message;
+            } else {
+                document.getElementById('login-error').textContent = '';
+                window.location.href = 'index.html';
+            }
+        });
+    });
+    </script>
+</body>
+</html>
