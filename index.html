@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="main.css">
 <style>
 body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; }
-.container { max-width:800px; margin: auto; padding:20px; }
+.container { max-width:800px; margin:auto; padding:20px; }
 .navbar { display:flex; justify-content:space-between; align-items:center; padding:10px 20px; background:#222; color:white; }
 .nav-links { list-style:none; display:flex; gap:15px; }
 .nav-links a { color:white; text-decoration:none; }
@@ -70,7 +70,7 @@ const limit = 5;
 
 document.addEventListener('DOMContentLoaded', async () => {
     const { data } = await supabase.auth.getUser();
-    if (!data.user) { window.location.href='login.html'; return; }
+    if(!data.user){ window.location.href='login.html'; return; }
     currentUser = data.user;
     document.getElementById('diary-form').style.display='';
     document.getElementById('logout-btn').style.display='';
@@ -92,7 +92,7 @@ document.getElementById('diary-form').addEventListener('submit', async e => {
     const content = document.getElementById('entry-text').value.trim();
     if(!title || !content || !currentUser) return;
 
-    await supabase.from('entries').insert([{ user_id: currentUser.id, title, content, points:0, created_at: new Date() }]);
+    await supabase.from('entries').insert([{ user_id: currentUser.id, title, content, points:0, created_at:new Date() }]);
     document.getElementById('entry-title').value='';
     document.getElementById('entry-text').value='';
 
@@ -105,26 +105,46 @@ document.getElementById('diary-form').addEventListener('submit', async e => {
 
 // Cargar recientes
 async function cargarEntradasRecientes() {
-    const { data, error } = await supabase
+    const { data: entries, error } = await supabase
         .from('entries')
-        .select('id, title, content, points, created_at, profiles(username)')
+        .select('id, title, content, points, created_at, user_id')
         .order('created_at', { ascending:false })
         .range(recentOffset, recentOffset+limit-1);
     if(error){ console.error(error); return; }
-    renderEntradas(data, 'recent-entries');
-    recentOffset+=data.length;
+
+    for(const entry of entries){
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', entry.user_id)
+            .single();
+        entry.username = profile?.username || 'Anónimo';
+    }
+
+    renderEntradas(entries,'recent-entries');
+    recentOffset += entries.length;
 }
 
 // Cargar top
 async function cargarTopEntradas() {
-    const { data, error } = await supabase
+    const { data: entries, error } = await supabase
         .from('entries')
-        .select('id, title, content, points, created_at, profiles(username)')
+        .select('id, title, content, points, created_at, user_id')
         .order('points', { ascending:false })
         .range(topOffset, topOffset+limit-1);
     if(error){ console.error(error); return; }
-    renderEntradas(data, 'top-entries');
-    topOffset+=data.length;
+
+    for(const entry of entries){
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', entry.user_id)
+            .single();
+        entry.username = profile?.username || 'Anónimo';
+    }
+
+    renderEntradas(entries,'top-entries');
+    topOffset += entries.length;
 }
 
 // Renderizar entradas
@@ -134,7 +154,7 @@ function renderEntradas(entries, containerId){
         const li=document.createElement('li');
         li.innerHTML=`
             <div class="entry-header">
-                <span>${entry.profiles?.username || 'Anónimo'}</span>
+                <span>${entry.username}</span>
                 <span>${new Date(entry.created_at).toLocaleString()}</span>
             </div>
             <div class="entry-title">${entry.title}</div>
@@ -146,7 +166,7 @@ function renderEntradas(entries, containerId){
 }
 
 // Scroll infinito
-window.addEventListener('scroll',()=>{
+window.addEventListener('scroll', ()=>{
     if((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300){
         cargarEntradasRecientes();
         cargarTopEntradas();
