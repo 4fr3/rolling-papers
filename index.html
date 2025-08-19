@@ -1,155 +1,52 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rolling Papers</title>
-<link rel="stylesheet" href="main.css">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rolling Papers</title>
+  <link rel="stylesheet" href="main.css" />
 </head>
 <body>
-<header>
-<nav class="navbar">
-<a href="#" class="nav-logo">Rolling Papers</a>
-<ul class="nav-links">
-<li><a href="dashboard.html">Dashboard</a></li>
-<li><a href="#" class="active">Inicio</a></li>
-<li><a href="login.html">Ingresar</a></li>
-</ul>
-</nav>
-</header>
+  <header>
+    <nav class="navbar">
+      <a href="#" class="nav-logo">📜 Rolling Papers</a>
+      <ul class="nav-links">
+        <li><a href="dashboard.html">Dashboard</a></li>
+        <li><a href="#" class="active">Inicio</a></li>
+        <li><a href="login.html">Ingresar</a></li>
+      </ul>
+    </nav>
+  </header>
 
-<div class="container">
-<h1>Roling Papers</h1>
-<div class="bienvenida">
-<p>¡Bienvenido/a a <strong>Roling Papers</strong>! Escribe y comparte tus pensamientos. Cada escrito puede ser valorado y ganar puntos.</p>
-</div>
+  <main class="container">
+    <section class="intro">
+      <h1>Bienvenido a <span>Rolling Papers</span></h1>
+      <p>
+        Comparte tus pensamientos, reflexiones y experiencias. 
+        Cada entrada puede ser valorada y sumar puntos en la comunidad.
+      </p>
+    </section>
 
-<button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
+    <button id="logout-btn" class="btn logout" style="display:none;">
+      Cerrar sesión
+    </button>
 
-<h2>Entradas recientes</h2>
-<ul id="recent-entries" class="entries-list"></ul>
+    <section class="entries-section">
+      <h2>Entradas recientes</h2>
+      <ul id="recent-entries" class="entries-list"></ul>
+    </section>
 
-<h2>Mejores valoradas</h2>
-<ul id="top-entries" class="entries-list"></ul>
-</div>
+    <section class="entries-section">
+      <h2>Mejores valoradas</h2>
+      <ul id="top-entries" class="entries-list"></ul>
+    </section>
+  </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  <footer class="footer">
+    <p>© 2025 Rolling Papers — Todos los derechos reservados</p>
+  </footer>
 
-let currentUser = null;
-let recentOffset = 0;
-let topOffset = 0;
-const limit = 5;
-
-document.addEventListener('DOMContentLoaded', async () => {
-    const { data } = await supabase.auth.getUser();
-    if(!data.user){ window.location.href='login.html'; return; }
-    currentUser = data.user;
-    document.getElementById('diary-form').style.display='';
-    document.getElementById('logout-btn').style.display='';
-
-    cargarEntradasRecientes();
-    cargarTopEntradas();
-});
-
-// Logout
-document.getElementById('logout-btn').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href='login.html';
-});
-
-// Guardar entrada
-document.getElementById('diary-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const title = document.getElementById('entry-title').value.trim();
-    const content = document.getElementById('entry-text').value.trim();
-    if(!title || !content || !currentUser) return;
-
-    await supabase.from('entries').insert([{ user_id: currentUser.id, title, content, points:0, created_at:new Date() }]);
-    document.getElementById('entry-title').value='';
-    document.getElementById('entry-text').value='';
-
-    recentOffset=0; topOffset=0;
-    document.getElementById('recent-entries').innerHTML='';
-    document.getElementById('top-entries').innerHTML='';
-    cargarEntradasRecientes();
-    cargarTopEntradas();
-});
-
-// Cargar recientes
-async function cargarEntradasRecientes() {
-    const { data: entries, error } = await supabase
-        .from('entries')
-        .select('id, title, content, points, created_at, user_id')
-        .order('created_at', { ascending:false })
-        .range(recentOffset, recentOffset+limit-1);
-    if(error){ console.error(error); return; }
-
-    for(const entry of entries){
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', entry.user_id)
-            .single();
-        entry.username = profile?.username || 'Anónimo';
-    }
-
-    renderEntradas(entries,'recent-entries');
-    recentOffset += entries.length;
-}
-
-// Cargar top
-async function cargarTopEntradas() {
-    const { data: entries, error } = await supabase
-        .from('entries')
-        .select('id, title, content, points, created_at, user_id')
-        .order('points', { ascending:false })
-        .range(topOffset, topOffset+limit-1);
-    if(error){ console.error(error); return; }
-
-    for(const entry of entries){
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('username')
-            .eq('id', entry.user_id)
-            .single();
-        entry.username = profile?.username || 'Anónimo';
-    }
-
-    renderEntradas(entries,'top-entries');
-    topOffset += entries.length;
-}
-
-// Renderizar entradas
-function renderEntradas(entries, containerId){
-    const lista=document.getElementById(containerId);
-    entries.forEach(entry=>{
-        const li=document.createElement('li');
-        li.innerHTML=`
-            <div class="entry-header">
-                <span>${entry.username}</span>
-                <span>${new Date(entry.created_at).toLocaleString()}</span>
-            </div>
-            <div class="entry-title">${entry.title}</div>
-            <div class="entry-content">${entry.content}</div>
-            <div class="entry-points">Puntos: ${entry.points}</div>
-        `;
-        lista.appendChild(li);
-    });
-}
-
-// Scroll infinito
-window.addEventListener('scroll', ()=>{
-    if((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300){
-        cargarEntradasRecientes();
-        cargarTopEntradas();
-    }
-});
-</script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="main.js"></script>
 </body>
 </html>
-
