@@ -21,21 +21,17 @@
     <div class="container">
         <h1>Mi Diario</h1>
         <div class="bienvenida">
-            <p>¡Bienvenido/a a <strong>Mi Diario</strong>! Este es un espacio abierto para escribir, compartir y valorar las publicaciones de otros.</p>
+            <p>¡Bienvenido/a a <strong>Mi Diario</strong>! Escribe y comparte tus pensamientos. Cada escrito puede ser valorado y ganar puntos.</p>
         </div>
 
-        <section class="invitacion">
-            <h2>¿Te animas a escribir?</h2>
-            <p>Comparte lo que quieras, valora los escritos de otros y suma puntos por tu actividad. ¡La comunidad te lee!</p>
-        </section>
-
+        <!-- Formulario de nueva entrada -->
         <form id="diary-form" style="display:none;">
-            <input type="text" id="entry-title" placeholder="Título de la entrada" required>
-            <textarea id="entry-text" placeholder="Escribe tu entrada aquí..." required></textarea>
+            <input type="text" id="entry-title" placeholder="Título" required style="margin-bottom:8px;">
+            <textarea id="entry-text" placeholder="Escribe tu entrada..." required></textarea>
             <button type="submit">Guardar entrada</button>
         </form>
 
-        <button id="logout-btn" style="display:none;">Cerrar sesión</button>
+        <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
 
         <h2>Entradas recientes</h2>
         <ul id="recent-entries" class="entries-list"></ul>
@@ -44,168 +40,113 @@
         <ul id="top-entries" class="entries-list"></ul>
     </div>
 
-    <!-- Modal -->
-    <div id="entry-modal" class="modal">
-      <div class="modal-content">
-        <span class="close">&times;</span>
-        <h3 id="modal-title"></h3>
-        <p><strong>Por:</strong> <span id="modal-username"></span></p>
-        <p><strong>Fecha:</strong> <span id="modal-date"></span></p>
-        <div id="modal-body"></div>
-        <div id="modal-points"></div>
-
-        <h4>Comentarios</h4>
-        <ul id="modal-comments"></ul>
-        <form id="comment-form">
-          <input type="text" id="comment-text" placeholder="Escribe un comentario..." required>
-          <button type="submit">Comentar</button>
-        </form>
-      </div>
-    </div>
-
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    let currentUser = null;
-    let recentOffset = 0;
-    let topOffset = 0;
-    const limit = 5;
+        let currentUser = null;
+        let recentOffset = 0;
+        let topOffset = 0;
+        const limit = 5;
 
-    document.addEventListener('DOMContentLoaded', async function() {
-        const { data } = await supabase.auth.getUser();
-        if (!data.user) window.location.href = 'login.html';
-        currentUser = data.user;
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Verificar usuario
+            const { data } = await supabase.auth.getUser();
+            if (!data.user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            currentUser = data.user;
+            document.getElementById('diary-form').style.display = '';
+            document.getElementById('logout-btn').style.display = '';
 
-        document.getElementById('diary-form').style.display = '';
-        document.getElementById('logout-btn').style.display = '';
-
-        cargarEntradasRecientes();
-        cargarTopEntradas();
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async function() {
-        await supabase.auth.signOut();
-        window.location.href = 'login.html';
-    });
-
-    document.getElementById('diary-form').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const title = document.getElementById('entry-title').value.trim();
-        const texto = document.getElementById('entry-text').value.trim();
-        if (!texto || !title) return;
-
-        await supabase.from('entries').insert([
-            { user_id: currentUser.id, title, content: texto, points: 0 }
-        ]);
-
-        document.getElementById('entry-title').value = '';
-        document.getElementById('entry-text').value = '';
-        recentOffset = topOffset = 0;
-        document.getElementById('recent-entries').innerHTML = '';
-        document.getElementById('top-entries').innerHTML = '';
-        cargarEntradasRecientes();
-        cargarTopEntradas();
-    });
-
-    async function cargarEntradasRecientes() {
-        const { data, error } = await supabase
-            .from('entries')
-            .select('id, title, content, points, created_at, profiles(username)')
-            .order('created_at', { ascending: false })
-            .range(recentOffset, recentOffset + limit - 1);
-
-        if (error) { console.error(error); return; }
-        renderEntradas(data, 'recent-entries');
-        recentOffset += data.length;
-    }
-
-    async function cargarTopEntradas() {
-        const { data, error } = await supabase
-            .from('entries')
-            .select('id, title, content, points, created_at, profiles(username)')
-            .order('points', { ascending: false })
-            .range(topOffset, topOffset + limit - 1);
-
-        if (error) { console.error(error); return; }
-        renderEntradas(data, 'top-entries');
-        topOffset += data.length;
-    }
-
-    function renderEntradas(entradas, containerId) {
-        const lista = document.getElementById(containerId);
-        entradas.forEach(entry => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <div class="entry-header">
-                    <span>${entry.profiles?.username || 'Anónimo'}</span>
-                    <span>${new Date(entry.created_at).toLocaleString()}</span>
-                </div>
-                <div class="entry-title" data-id="${entry.id}">${entry.title}</div>
-                <div class="entry-content">${entry.content}</div>
-                <div class="entry-points">Puntos: ${entry.points}</div>
-            `;
-            lista.appendChild(li);
-
-            // abrir modal al click en título
-            li.querySelector('.entry-title').addEventListener('click', () => abrirModal(entry));
-        });
-    }
-
-    async function abrirModal(entry) {
-        document.getElementById('modal-title').textContent = entry.title;
-        document.getElementById('modal-username').textContent = entry.profiles?.username || 'Anónimo';
-        document.getElementById('modal-date').textContent = new Date(entry.created_at).toLocaleString();
-        document.getElementById('modal-body').textContent = entry.content;
-        document.getElementById('modal-points').textContent = `Puntos: ${entry.points}`;
-        document.getElementById('entry-modal').style.display = 'flex';
-
-        const { data: comments } = await supabase
-            .from('comments')
-            .select('id, user_id, content, profiles(username)')
-            .eq('entry_id', entry.id)
-            .order('created_at', { ascending: true });
-
-        const commentsList = document.getElementById('modal-comments');
-        commentsList.innerHTML = '';
-        if (comments) comments.forEach(c => {
-            const li = document.createElement('li');
-            li.textContent = `${c.profiles?.username || 'Anónimo'}: ${c.content}`;
-            commentsList.appendChild(li);
-        });
-
-        document.getElementById('comment-form').dataset.entryId = entry.id;
-    }
-
-    document.querySelector('.modal .close').addEventListener('click', () => {
-        document.getElementById('entry-modal').style.display = 'none';
-    });
-
-    document.getElementById('comment-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const text = document.getElementById('comment-text').value.trim();
-        const entryId = e.target.dataset.entryId;
-        if (!text || !currentUser) return;
-
-        await supabase.from('comments').insert([
-            { entry_id: entryId, user_id: currentUser.id, content: text }
-        ]);
-
-        document.getElementById('comment-text').value = '';
-        abrirModal({ id: entryId });
-    });
-
-    // Scroll infinito
-    window.addEventListener('scroll', () => {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
             cargarEntradasRecientes();
             cargarTopEntradas();
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            await supabase.auth.signOut();
+            window.location.href = 'login.html';
+        });
+
+        // Guardar entrada
+        document.getElementById('diary-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const title = document.getElementById('entry-title').value.trim();
+            const content = document.getElementById('entry-text').value.trim();
+            if (!title || !content || !currentUser) return;
+
+            await supabase.from('entries').insert([
+                { user_id: currentUser.id, title, content, points: 0 }
+            ]);
+
+            document.getElementById('entry-title').value = '';
+            document.getElementById('entry-text').value = '';
+
+            // Reset offsets y recargar
+            recentOffset = 0;
+            topOffset = 0;
+            document.getElementById('recent-entries').innerHTML = '';
+            document.getElementById('top-entries').innerHTML = '';
+            cargarEntradasRecientes();
+            cargarTopEntradas();
+        });
+
+        // Cargar entradas recientes
+        async function cargarEntradasRecientes() {
+            const { data, error } = await supabase
+                .from('entries')
+                .select('id, title, content, points, created_at, user_id')
+                .order('created_at', { ascending: false })
+                .range(recentOffset, recentOffset + limit - 1);
+
+            if (error) { console.error(error); return; }
+            renderEntradas(data, 'recent-entries');
+            recentOffset += data.length;
         }
-    });
+
+        // Cargar entradas top
+        async function cargarTopEntradas() {
+            const { data, error } = await supabase
+                .from('entries')
+                .select('id, title, content, points, created_at, user_id')
+                .order('points', { ascending: false })
+                .range(topOffset, topOffset + limit - 1);
+
+            if (error) { console.error(error); return; }
+            renderEntradas(data, 'top-entries');
+            topOffset += data.length;
+        }
+
+        // Renderizar entradas
+        function renderEntradas(entries, containerId) {
+            const lista = document.getElementById(containerId);
+            entries.forEach(entry => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="entry-header">
+                        <span>${entry.user_id}</span>
+                        <span>${new Date(entry.created_at).toLocaleString()}</span>
+                    </div>
+                    <div class="entry-title">${entry.title}</div>
+                    <div class="entry-content">${entry.content}</div>
+                    <div class="entry-points">Puntos: ${entry.points}</div>
+                `;
+                lista.appendChild(li);
+            });
+        }
+
+        // Scroll infinito
+        window.addEventListener('scroll', () => {
+            if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+                cargarEntradasRecientes();
+                cargarTopEntradas();
+            }
+        });
     </script>
 </body>
 </html>
-
