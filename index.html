@@ -7,100 +7,107 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-    <nav class="navbar">
-        <a href="index.html" class="nav-logo">Rolling Papers</a>
-        <ul class="nav-links">
-            <li><a href="dashboard.html">Dashboard</a></li>
-            <li><a href="index.html" class="active">Inicio</a></li>
-            <li><a href="login.html">Ingresar</a></li>
-        </ul>
-    </nav>
-</header>
+    <header>
+        <nav class="navbar">
+            <a href="#" class="nav-logo">Mi Diario</a>
+            <ul class="nav-links">
+                <li><a href="dashboard.html">Dashboard</a></li>
+                <li><a href="#" class="active">Inicio</a></li>
+                <li><a href="login.html">Ingresar</a></li>
+            </ul>
+        </nav>
+    </header>
 
-<main class="container">
-    <section class="bienvenida" id="welcome-message" style="padding:16px; border-radius:12px; margin-bottom:24px;">
-        Cargando...
-    </section>
+    <div class="container">
+        <h1>Mi Diario</h1>
+        <div class="bienvenida">
+            <p>¡Bienvenido/a a <strong>Mi Diario</strong>! Este es un espacio abierto para que cualquier persona pueda escribir y compartir sus pensamientos, reflexiones, historias o lo que desee. Aquí, cada escrito puede ser valorado por otros usuarios y ganar puntos por tu participación.</p>
+        </div>
 
-    <section id="diary-section" style="display:none;">
-        <form id="diary-form">
+        <section class="invitacion">
+            <h2>¿Te animas a escribir?</h2>
+            <p>Comparte lo que quieras, valora los escritos de otros y suma puntos por tu actividad. ¡La comunidad te lee!</p>
+        </section>
+
+        <form id="diary-form" style="display:none;">
             <textarea id="entry-text" placeholder="Escribe tu entrada aquí..." required></textarea>
             <button type="submit">Guardar entrada</button>
         </form>
 
+        <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
+
         <h2>Entradas guardadas</h2>
         <ul id="entries-list"></ul>
         <div id="puntos-totales" class="puntos-totales"></div>
-        <button id="logout-btn">Cerrar sesión</button>
-    </section>
-</main>
+    </div>
 
-<!-- Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"></script>
-<script>
-const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- Supabase JS CDN clásico -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser = null;
+    let currentUser = null;
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (!user) {
+    document.addEventListener('DOMContentLoaded', async function() {
+        // Proteger acceso
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) {
+            window.location.href = 'login.html';
+            return;
+        }
+        currentUser = data.user;
+        document.getElementById('diary-form').style.display = '';
+        document.getElementById('logout-btn').style.display = '';
+
+        mostrarEntradas();
+    });
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', async function() {
+        await supabase.auth.signOut();
         window.location.href = 'login.html';
-        return;
-    }
-    currentUser = user;
+    });
 
-    document.getElementById('diary-section').style.display = '';
-    const welcomeMessage = document.getElementById('welcome-message');
+    // Guardar nueva entrada
+    document.getElementById('diary-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const texto = document.getElementById('entry-text').value.trim();
+        if (!texto || !currentUser) return;
 
-    // Obtener username del perfil
-    const { data: profileData } = await supabase.from('profiles').select('username').eq('id', user.id).single();
-    welcomeMessage.textContent = profileData?.username ? `¡Bienvenido/a, ${profileData.username}!` : '¡Bienvenido/a!';
+        await supabase.from('entries').insert([
+            { user_id: currentUser.id, content: texto, points: 0 }
+        ]);
 
-    mostrarEntradas();
-});
+        document.getElementById('entry-text').value = '';
+        mostrarEntradas();
+    });
 
-// Logout
-document.getElementById('logout-btn').addEventListener('click', async () => {
-    await supabase.auth.signOut();
-    window.location.href = 'login.html';
-});
+    // Mostrar entradas y puntos
+    async function mostrarEntradas() {
+        const lista = document.getElementById('entries-list');
+        lista.innerHTML = '';
+        if (!currentUser) return;
 
-// Guardar nueva entrada
-document.getElementById('diary-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const texto = document.getElementById('entry-text').value.trim();
-    if (!texto) return;
+        let { data: entradas, error } = await supabase
+            .from('entries')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .order('created_at', { ascending: false });
 
-    await supabase.from('entries').insert([{ user_id: currentUser.id, content: texto, points: 0 }]);
-    document.getElementById('entry-text').value = '';
-    mostrarEntradas();
-});
+        let puntosTotales = 0;
+        if (!entradas || entradas.length === 0) {
+            lista.innerHTML = '<li>No hay entradas aún.</li>';
+            document.getElementById('puntos-totales').textContent = '';
+            return;
+        }
 
-// Mostrar entradas
-async function mostrarEntradas() {
-    const lista = document.getElementById('entries-list');
-    lista.innerHTML = '';
-    const { data: entradas } = await supabase.from('entries').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
-
-    if (!entradas || entradas.length === 0) {
-        lista.innerHTML = '<li>No hay entradas aún.</li>';
-        document.getElementById('puntos-totales').textContent = '';
-        return;
-    }
-
-    let puntosTotales = 0;
-
-    entradas.forEach(entrada => {
-        if (typeof entrada.points !== 'number') entrada.points = 0;
-        puntosTotales += entrada.points;
-
-        const li = document.createElement('li');
-        li.innerHTML = `
-            <article style="margin-bottom:12px; padding:12px; border:1px solid #ccc; border-radius:8px;">
+        entradas.forEach((entrada) => {
+            if (typeof entrada.points !== 'number') entrada.points = 0;
+            puntosTotales += entrada.points;
+            const li = document.createElement('li');
+            li.innerHTML = `
                 <strong>${new Date(entrada.created_at).toLocaleString()}</strong><br>
                 ${entrada.content}<br>
                 <div class="feedback">
@@ -108,31 +115,28 @@ async function mostrarEntradas() {
                     <button class="valorar" data-id="${entrada.id}" data-valor="-1">👎</button>
                     <span class="puntos">Puntos: <b>${entrada.points}</b></span>
                 </div>
-            </article>
-        `;
-        lista.appendChild(li);
-    });
-
-    document.getElementById('puntos-totales').textContent = `Puntos totales: ${puntosTotales}`;
-
-    document.querySelectorAll('.valorar').forEach(btn => {
-        btn.addEventListener('click', async function() {
-            const id = this.dataset.id;
-            const valor = parseInt(this.dataset.valor);
-            await valorarEntrada(id, valor);
+            `;
+            lista.appendChild(li);
         });
-    });
-}
 
-// Valorar entrada
-async function valorarEntrada(id, valor) {
-    const { data: entradaArr } = await supabase.from('entries').select('points').eq('id', id).single();
-    let puntos = entradaArr?.points || 0;
-    puntos += valor;
-    await supabase.from('entries').update({ points: puntos }).eq('id', id);
-    mostrarEntradas();
-}
-</script>
+        document.getElementById('puntos-totales').textContent = `Puntos totales obtenidos: ${puntosTotales}`;
+
+        document.querySelectorAll('.valorar').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const id = this.getAttribute('data-id');
+                const valor = parseInt(this.getAttribute('data-valor'));
+                await valorarEntrada(id, valor);
+            });
+        });
+    }
+
+    async function valorarEntrada(id, valor) {
+        let { data: entradaArr } = await supabase.from('entries').select('points').eq('id', id).single();
+        let puntos = (entradaArr && typeof entradaArr.points === 'number') ? entradaArr.points : 0;
+        puntos += valor;
+        await supabase.from('entries').update({ points: puntos }).eq('id', id);
+        mostrarEntradas();
+    }
+    </script>
 </body>
 </html>
-
