@@ -29,16 +29,20 @@
             <p>Comparte lo que quieras, valora los escritos de otros y suma puntos por tu actividad. ¡La comunidad te lee!</p>
         </section>
 
+        <!-- Formulario para nuevas entradas -->
         <form id="diary-form" style="display:none;">
+            <input type="text" id="entry-title" placeholder="Título de la entrada" required style="margin-bottom:8px;">
             <textarea id="entry-text" placeholder="Escribe tu entrada aquí..." required></textarea>
             <button type="submit">Guardar entrada</button>
         </form>
 
         <button id="logout-btn" style="display:none; margin-bottom:24px;">Cerrar sesión</button>
 
-        <h2>Entradas guardadas</h2>
-        <ul id="entries-list"></ul>
-        <div id="puntos-totales" class="puntos-totales"></div>
+        <h2>Entradas recientes</h2>
+        <ul id="recent-entries" class="entries-list"></ul>
+
+        <h2>Mejores valoradas</h2>
+        <ul id="top-entries" class="entries-list"></ul>
     </div>
 
     <!-- Supabase JS CDN clásico -->
@@ -49,9 +53,11 @@
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     let currentUser = null;
+    let recentOffset = 0;
+    let topOffset = 0;
+    const limit = 5;
 
     document.addEventListener('DOMContentLoaded', async function() {
-        // Proteger acceso
         const { data } = await supabase.auth.getUser();
         if (!data.user) {
             window.location.href = 'login.html';
@@ -61,7 +67,8 @@
         document.getElementById('diary-form').style.display = '';
         document.getElementById('logout-btn').style.display = '';
 
-        mostrarEntradas();
+        cargarEntradasRecientes();
+        cargarTopEntradas();
     });
 
     // Logout
@@ -73,71 +80,75 @@
     // Guardar nueva entrada
     document.getElementById('diary-form').addEventListener('submit', async function(e) {
         e.preventDefault();
+        const title = document.getElementById('entry-title').value.trim();
         const texto = document.getElementById('entry-text').value.trim();
-        if (!texto || !currentUser) return;
+        if (!texto || !title || !currentUser) return;
 
         await supabase.from('entries').insert([
-            { user_id: currentUser.id, content: texto, points: 0 }
+            { user_id: currentUser.id, title, content: texto, points: 0 }
         ]);
 
+        document.getElementById('entry-title').value = '';
         document.getElementById('entry-text').value = '';
-        mostrarEntradas();
+
+        // Recargar entradas
+        recentOffset = 0;
+        topOffset = 0;
+        document.getElementById('recent-entries').innerHTML = '';
+        document.getElementById('top-entries').innerHTML = '';
+        cargarEntradasRecientes();
+        cargarTopEntradas();
     });
 
-    // Mostrar entradas y puntos
-    async function mostrarEntradas() {
-        const lista = document.getElementById('entries-list');
-        lista.innerHTML = '';
-        if (!currentUser) return;
-
-        let { data: entradas, error } = await supabase
+    // Funciones para cargar entradas
+    async function cargarEntradasRecientes() {
+        const { data, error } = await supabase
             .from('entries')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
+            .select('id, title, content, points, created_at, profiles(username)')
+            .order('created_at', { ascending: false })
+            .range(recentOffset, recentOffset + limit - 1);
 
-        let puntosTotales = 0;
-        if (!entradas || entradas.length === 0) {
-            lista.innerHTML = '<li>No hay entradas aún.</li>';
-            document.getElementById('puntos-totales').textContent = '';
-            return;
-        }
+        if (error) { console.error(error); return; }
+        renderEntradas(data, 'recent-entries');
+        recentOffset += data.length;
+    }
 
-        entradas.forEach((entrada) => {
-            if (typeof entrada.points !== 'number') entrada.points = 0;
-            puntosTotales += entrada.points;
+    async function cargarTopEntradas() {
+        const { data, error } = await supabase
+            .from('entries')
+            .select('id, title, content, points, created_at, profiles(username)')
+            .order('points', { ascending: false })
+            .range(topOffset, topOffset + limit - 1);
+
+        if (error) { console.error(error); return; }
+        renderEntradas(data, 'top-entries');
+        topOffset += data.length;
+    }
+
+    function renderEntradas(entradas, containerId) {
+        const lista = document.getElementById(containerId);
+        entradas.forEach(entry => {
             const li = document.createElement('li');
             li.innerHTML = `
-                <strong>${new Date(entrada.created_at).toLocaleString()}</strong><br>
-                ${entrada.content}<br>
-                <div class="feedback">
-                    <button class="valorar" data-id="${entrada.id}" data-valor="1">👍</button>
-                    <button class="valorar" data-id="${entrada.id}" data-valor="-1">👎</button>
-                    <span class="puntos">Puntos: <b>${entrada.points}</b></span>
+                <div class="entry-header">
+                    <span>${entry.profiles?.username || 'Anónimo'}</span>
+                    <span>${new Date(entry.created_at).toLocaleString()}</span>
                 </div>
+                <div class="entry-title">${entry.title}</div>
+                <div class="entry-content">${entry.content}</div>
+                <div class="entry-points">Puntos: ${entry.points}</div>
             `;
             lista.appendChild(li);
         });
-
-        document.getElementById('puntos-totales').textContent = `Puntos totales obtenidos: ${puntosTotales}`;
-
-        document.querySelectorAll('.valorar').forEach(btn => {
-            btn.addEventListener('click', async function() {
-                const id = this.getAttribute('data-id');
-                const valor = parseInt(this.getAttribute('data-valor'));
-                await valorarEntrada(id, valor);
-            });
-        });
     }
 
-    async function valorarEntrada(id, valor) {
-        let { data: entradaArr } = await supabase.from('entries').select('points').eq('id', id).single();
-        let puntos = (entradaArr && typeof entradaArr.points === 'number') ? entradaArr.points : 0;
-        puntos += valor;
-        await supabase.from('entries').update({ points: puntos }).eq('id', id);
-        mostrarEntradas();
-    }
+    // Scroll infinito
+    window.addEventListener('scroll', () => {
+        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 300) {
+            cargarEntradasRecientes();
+            cargarTopEntradas();
+        }
+    });
     </script>
 </body>
 </html>
-
