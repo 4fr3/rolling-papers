@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rolling Papers | Login/Registro</title>
-    <link rel="stylesheet" href="main.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rolling Papers | Login/Registro</title>
+<link rel="stylesheet" href="main.css">
 </head>
 <body>
 <header>
@@ -48,7 +48,6 @@
     </form>
 </div>
 
-<!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
@@ -56,6 +55,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 document.addEventListener('DOMContentLoaded', () => {
+
     // Cambiar entre login y registro
     document.getElementById('show-register').addEventListener('click', e => {
         e.preventDefault();
@@ -75,31 +75,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const password = document.getElementById('register-password').value;
         const username = document.getElementById('register-username').value.trim();
 
-        // Crear usuario en auth
+        // Crear cuenta
         const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) {
             document.getElementById('register-error').textContent = signUpError.message;
             return;
         }
 
-        // Esperar a que exista el usuario
-        const userId = signUpData.user?.id;
-        if (!userId) {
-            document.getElementById('register-error').textContent = "Error creando usuario.";
-            return;
+        // Crear perfil automáticamente
+        if (signUpData.user && signUpData.user.id) {
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert([{ id: signUpData.user.id, username, created_at: new Date().toISOString() }]);
+            
+            if (profileError) {
+                document.getElementById('register-error').textContent = 'Error guardando perfil: ' + profileError.message;
+                return;
+            }
         }
 
-        // Insertar perfil en tabla profiles
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{ id: userId, username }]);
-
-        if (profileError) {
-            document.getElementById('register-error').textContent = 'Error guardando perfil: ' + profileError.message;
-        } else {
-            document.getElementById('register-error').style.color = "#16a34a";
-            document.getElementById('register-error').textContent = 'Cuenta creada. ¡Revisa tu email para confirmar!';
-        }
+        document.getElementById('register-error').textContent = 'Cuenta creada. ¡Revisa tu email para confirmar!';
     });
 
     // Login
@@ -116,6 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'dashboard.html';
         }
     });
+
 });
 </script>
 </body>
