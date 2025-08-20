@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard | Rolling Papers</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="main.css">
+    <link rel="stylesheet" href="LoginStyle.css">
 </head>
 <body>
  <header>
@@ -27,17 +28,21 @@
     </div>
 
     <!-- Crear post -->
-    <form id="post-form" style="margin-top:20px; background:#232946; padding:16px; border-radius:12px;">
-        <textarea id="post-content" placeholder="Escribe tu post..." rows="3" 
-                  style="width:100%; border-radius:8px; padding:8px;"></textarea>
-        <button type="submit" style="margin-top:10px; padding:10px; border:none; border-radius:8px;
-                                    background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%);
-                                    color:#fff; font-weight:600;">Publicar</button>
-        <div id="post-error" style="color:#f43f5e; margin-top:8px;"></div>
-    </form>
+    <Section class="Estadisticas">
+        <div>
+            <h2>Usuario: </h2>
+            <h2>Se unio desde: </h2>
+            <h2>Publicaciones: </h2>
+            <h2>Publicación mas valorada:</h2>
+        </div>
+
+    </Section>
 
     <!-- Lista de posts -->
-    <h2 style="margin-top:24px; color:#7c3aed;">Tus posts</h2>
+     
+    <div class="tusposts" style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%);
+         padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem;
+         text-shadow:0 1px 6px #232946; box-shadow:0 2px 12px #7c3aed33;">Tus posts</div>
     <ul id="posts-list" style="list-style:none; padding:0;"></ul>
 
     <button id="logout-btn" style="margin-top:20px; background:linear-gradient(90deg,#f43f5e 0%,#7c3aed 100%);
@@ -69,7 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         .single();
     document.getElementById('welcome-message').textContent = profileData
         ? `¡Bienvenido/a, ${profileData.username}!`
-        : 'Bienvenido/a!';
+        : 'Bienvenido, aqui podrás ver tus publicaciones y estadísticas.';
 
     // Cargar posts del usuario
     async function loadPosts() {
