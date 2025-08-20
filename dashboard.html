@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="LoginStyle.css">
 </head>
 <body>
- <header>
+<header>
     <nav class="navbar">
       <a href="#" class="nav-logo">Rolling Papers</a>
       <ul class="nav-links">
@@ -17,9 +17,11 @@
         <li><a href="login.html">Ingresar</a></li>
       </ul>
     </nav>
-  </header>
+</header>
+
 <div class="container">
     <h1>Rolling Papers</h1>
+
     <div class="bienvenida" id="welcome-message" 
          style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%);
          padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem;
@@ -27,19 +29,17 @@
         Cargando...
     </div>
 
-    <!-- Crear post -->
-    <Section class="Estadisticas">
+    <!-- Estadísticas -->
+    <section class="Estadisticas">
         <div>
-            <h2>Usuario: </h2>
-            <h2>Se unio desde: </h2>
-            <h2>Publicaciones: </h2>
-            <h2>Publicación mas valorada:</h2>
+            <h2>Usuario: <span id="stat-username"></span></h2>
+            <h2>Se unió desde: <span id="stat-joined"></span></h2>
+            <h2>Publicaciones: <span id="stat-posts"></span></h2>
+            <h2>Publicación más valorada: <span id="stat-top"></span></h2>
         </div>
-
-    </Section>
+    </section>
 
     <!-- Lista de posts -->
-     
     <div class="tusposts" style="color:#f4f4f4; background:linear-gradient(90deg,#7c3aed 0%,#f43f5e 100%);
          padding:12px 18px; border-radius:12px; font-weight:600; font-size:1.1rem;
          text-shadow:0 1px 6px #232946; box-shadow:0 2px 12px #7c3aed33;">Tus posts</div>
@@ -59,37 +59,57 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Obtener usuario
+    // Obtener usuario logueado
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
         window.location.href = 'login.html';
         return;
     }
 
-    // Mostrar username
+    // 1. Obtener perfil
     const { data: profileData } = await supabase
         .from('profiles')
         .select('username')
         .eq('id', user.id)
         .single();
-    document.getElementById('welcome-message').textContent = profileData
-        ? `¡Bienvenido/a, ${profileData.username}!`
-        : 'Bienvenido, aqui podrás ver tus publicaciones y estadísticas.';
 
-    // Cargar posts del usuario
+    if (profileData) {
+        document.getElementById('welcome-message').textContent = `¡Bienvenido/a, ${profileData.username}!`;
+        document.getElementById('stat-username').textContent = profileData.username;
+    }
+
+    // Fecha de registro
+    document.getElementById('stat-joined').textContent =
+        new Date(user.created_at).toLocaleDateString();
+
+    // 2. Cargar posts del usuario
     async function loadPosts() {
         const { data: posts, error: postsError } = await supabase
             .from('posts')
-            .select('id, content, created_at')
+            .select('id, content, created_at, likes') // asegúrate que tu tabla tenga "likes"
             .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
         const list = document.getElementById('posts-list');
         list.innerHTML = '';
+
         if (postsError) {
             list.innerHTML = '<li>Error cargando posts</li>';
             return;
         }
+
+        // Total publicaciones
+        document.getElementById('stat-posts').textContent = posts.length;
+
+        // Publicación más valorada
+        if (posts.length > 0) {
+            const topPost = posts.reduce((max, p) => (p.likes > (max.likes || 0) ? p : max), posts[0]);
+            document.getElementById('stat-top').textContent = topPost.content;
+        } else {
+            document.getElementById('stat-top').textContent = 'N/A';
+        }
+
+        // Renderizar lista
         posts.forEach(post => {
             const li = document.createElement('li');
             li.textContent = `${post.content} (${new Date(post.created_at).toLocaleString()})`;
@@ -102,25 +122,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await loadPosts();
-
-    // Crear nuevo post
-    document.getElementById('post-form').addEventListener('submit', async e => {
-        e.preventDefault();
-        const content = document.getElementById('post-content').value.trim();
-        if (!content) return;
-
-        const { data, error: insertError } = await supabase
-            .from('posts')
-            .insert([{ user_id: user.id, content }]);
-
-        if (insertError) {
-            document.getElementById('post-error').textContent = insertError.message;
-        } else {
-            document.getElementById('post-error').textContent = '';
-            document.getElementById('post-content').value = '';
-            await loadPosts();
-        }
-    });
 
     // Logout
     document.getElementById('logout-btn').addEventListener('click', async () => {
