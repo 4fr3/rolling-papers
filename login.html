@@ -5,11 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rolling Papers | Login/Registro</title>
     <link rel="stylesheet" href="main.css">
-
 </head>
 <body>
-
-      <header>
+<header>
     <nav class="navbar">
       <a href="#" class="nav-logo">📜 Rolling Papers</a>
       <ul class="nav-links">
@@ -18,104 +16,98 @@
         <li><a href="login.html" class="active">Ingresar</a></li>
       </ul>
     </nav>
-  </header>
-    <div class="container">
-        <h1>Rolling Papers</h1>
+</header>
 
-        <!-- Login -->
-        <form id="login-form" style="display:block; margin-bottom:24px;">
-            <h3>Iniciar sesión</h3>
-            <label>Email</label>
-            <input type="email" id="login-email" placeholder="Email" required>
-            <label>Contraseña</label>
-            <input type="password" id="login-password" placeholder="Contraseña" required>
-            <button type="submit">Entrar</button>
-            <p>¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a></p>
-            <div id="login-error" style="color:#f43f5e;"></div>
-        </form>
+<div class="container">
+    <h1>Rolling Papers</h1>
 
-        <!-- Registro -->
-        <form id="register-form" style="display:none; margin-bottom:24px;">
-            <h3>Crear cuenta</h3>
-            <label>Email</label>
-            <input type="email" id="register-email" placeholder="Email" required>
-            <label>Contraseña</label>
-            <input type="password" id="register-password" placeholder="Contraseña" required>
-            <label>Nombre de usuario</label>
-            <input type="text" id="register-username" placeholder="Usuario" required>
-            <button type="submit">Registrarse</button>
-            <p>¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión</a></p>
-            <div id="register-error" style="color:#f43f5e;"></div>
-        </form>
-    </div>
+    <!-- Login -->
+    <form id="login-form" style="display:block; margin-bottom:24px;">
+        <h3>Iniciar sesión</h3>
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="Email" required>
+        <label>Contraseña</label>
+        <input type="password" id="login-password" placeholder="Contraseña" required>
+        <button type="submit">Entrar</button>
+        <p>¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a></p>
+        <div id="login-error" style="color:#f43f5e;"></div>
+    </form>
 
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-    const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    <!-- Registro -->
+    <form id="register-form" style="display:none; margin-bottom:24px;">
+        <h3>Crear cuenta</h3>
+        <label>Email</label>
+        <input type="email" id="register-email" placeholder="Email" required>
+        <label>Contraseña</label>
+        <input type="password" id="register-password" placeholder="Contraseña" required>
+        <label>Nombre de usuario</label>
+        <input type="text" id="register-username" placeholder="Usuario" required>
+        <button type="submit">Registrarse</button>
+        <p>¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión</a></p>
+        <div id="register-error" style="color:#f43f5e;"></div>
+    </form>
+</div>
 
-    document.addEventListener('DOMContentLoaded', () => {
-        // Navegación entre login y registro
-        document.getElementById('show-register').addEventListener('click', e => {
-            e.preventDefault();
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('register-form').style.display = 'block';
-        });
-        document.getElementById('show-login').addEventListener('click', e => {
-            e.preventDefault();
-            document.getElementById('login-form').style.display = 'block';
-            document.getElementById('register-form').style.display = 'none';
-        });
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://xooosccvdmnuzctgzjta.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb29zY2N2ZG1udXpjdGd6anRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NzQwNjIsImV4cCI6MjA3MTE1MDA2Mn0.HLqBrW71UcAkjmJj9d8vDI04Je05oBeX05u-QbWjd6c';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Registro
-        document.getElementById('register-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const email = document.getElementById('register-email').value.trim();
-            const password = document.getElementById('register-password').value;
-            const username = document.getElementById('register-username').value.trim();
-
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
-            if (signUpError) {
-                document.getElementById('register-error').textContent = signUpError.message;
-                return;
-            }
-
-            // Insertar perfil en tabla profiles usando UUID del usuario
-            const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .insert([{ id: signUpData.user.id, username }]);
-
-            if (profileError) {
-                document.getElementById('register-error').textContent = 'Error guardando perfil: ' + profileError.message;
-            } else {
-                document.getElementById('register-error').textContent = 'Cuenta creada. ¡Revisa tu email para confirmar!';
-            }
-        });
-
-        // Login
-        document.getElementById('login-form').addEventListener('submit', async e => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value.trim();
-            const password = document.getElementById('login-password').value;
-
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) {
-                document.getElementById('login-error').textContent = error.message;
-            } else {
-                document.getElementById('login-error').textContent = '';
-                window.location.href = 'dashboard.html';
-            }
-        });
+document.addEventListener('DOMContentLoaded', () => {
+    // Navegación entre login y registro
+    document.getElementById('show-register').addEventListener('click', e => {
+        e.preventDefault();
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = 'block';
     });
-    </script>
+    document.getElementById('show-login').addEventListener('click', e => {
+        e.preventDefault();
+        document.getElementById('login-form').style.display = 'block';
+        document.getElementById('register-form').style.display = 'none';
+    });
+
+    // Registro
+    document.getElementById('register-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const email = document.getElementById('register-email').value.trim();
+        const password = document.getElementById('register-password').value;
+        const username = document.getElementById('register-username').value.trim();
+
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) {
+            document.getElementById('register-error').textContent = signUpError.message;
+            return;
+        }
+
+        // Insertar perfil en tabla profiles usando UUID del usuario
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ id: signUpData.user.id, username }]);
+
+        if (profileError) {
+            document.getElementById('register-error').textContent = 'Error guardando perfil: ' + profileError.message;
+        } else {
+            document.getElementById('register-error').textContent = 'Cuenta creada. ¡Revisa tu email para confirmar!';
+        }
+    });
+
+    // Login
+    document.getElementById('login-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const email = document.getElementById('login-email').value.trim();
+        const password = document.getElementById('login-password').value;
+
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            document.getElementById('login-error').textContent = error.message;
+        } else {
+            document.getElementById('login-error').textContent = '';
+            window.location.href = 'dashboard.html';
+        }
+    });
+});
+</script>
 </body>
 </html>
-
-
-
-
-
-
-
